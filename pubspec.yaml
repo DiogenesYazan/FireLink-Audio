@@ -1,7 +1,7 @@
 name: firelink_audio
-description: "A new Flutter project."
+description: "FireLink Audio — Open-source music streaming client built with Flutter."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.11.0
@@ -9,6 +9,34 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Audio
+  just_audio: ^0.9.43
+  just_audio_background: ^0.0.1-beta.13
+  just_audio_media_kit: ^2.1.0
+  media_kit_libs_windows_audio: ^1.0.9
+  audio_session: ^0.1.25
+
+  # YouTube via Piped API (proxied streams — uses http package)
+
+  # State management
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.7
+
+  # Dependency injection
+  get_it: ^8.0.3
+
+  # Reactive streams
+  rxdart: ^0.28.0
+
+  # HTTP client
+  http: ^1.4.0
+
+  # Image caching
+  cached_network_image: ^3.4.1
+
+  # Fonts
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:

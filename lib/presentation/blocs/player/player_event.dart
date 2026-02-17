@@ -1,0 +1,79 @@
+part of 'player_bloc.dart';
+
+/// Eventos do PlayerBloc.
+sealed class PlayerEvent extends Equatable {
+  const PlayerEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+
+/// Seleciona e começa a reproduzir uma track.
+class PlayerTrackSelected extends PlayerEvent {
+  const PlayerTrackSelected(this.track);
+  final Track track;
+
+  @override
+  List<Object?> get props => [track];
+}
+
+/// Alterna entre play e pause.
+class PlayerPlayPauseToggled extends PlayerEvent {
+  const PlayerPlayPauseToggled();
+}
+
+/// Faz seek para [position].
+class PlayerSeeked extends PlayerEvent {
+  const PlayerSeeked(this.position);
+  final Duration position;
+
+  @override
+  List<Object?> get props => [position];
+}
+
+/// Pula para a próxima track na fila.
+class PlayerNextRequested extends PlayerEvent {
+  const PlayerNextRequested();
+}
+
+/// Volta para a track anterior na fila.
+class PlayerPreviousRequested extends PlayerEvent {
+  const PlayerPreviousRequested();
+}
+
+/// Define a fila de reprodução e inicia a partir de [startIndex].
+class PlayerQueueSet extends PlayerEvent {
+  const PlayerQueueSet(this.tracks, {this.startIndex = 0});
+  final List<Track> tracks;
+  final int startIndex;
+
+  @override
+  List<Object?> get props => [tracks, startIndex];
+}
+
+/// Altera o volume (0.0 – 1.0).
+class PlayerVolumeChanged extends PlayerEvent {
+  const PlayerVolumeChanged(this.volume);
+  final double volume;
+
+  @override
+  List<Object?> get props => [volume];
+}
+
+// ── Eventos internos (disparados pelos streams do just_audio) ──
+
+class _PlayerPositionUpdated extends PlayerEvent {
+  const _PlayerPositionUpdated(this.position);
+  final Duration position;
+}
+
+class _PlayerDurationReceived extends PlayerEvent {
+  const _PlayerDurationReceived(this.duration);
+  final Duration duration;
+}
+
+class _PlayerPlaybackStateChanged extends PlayerEvent {
+  const _PlayerPlaybackStateChanged(this.playing, this.processingState);
+  final bool playing;
+  final ProcessingState processingState;
+}
