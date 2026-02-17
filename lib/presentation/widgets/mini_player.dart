@@ -125,8 +125,27 @@ class MiniPlayer extends StatelessWidget {
                         ),
                       ),
 
-                      // Botão play/pause.
-                      _PlayPauseButton(state: state),
+                      // Botões de controle.
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _PlayPauseButton(state: state),
+                          // Next button (se houver próxima).
+                          if (state.hasNext)
+                            IconButton(
+                              icon: const Icon(
+                                Icons.skip_next_rounded,
+                                color: AppColors.onSurface,
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                context.read<PlayerBloc>().add(
+                                  const PlayerNextRequested(),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

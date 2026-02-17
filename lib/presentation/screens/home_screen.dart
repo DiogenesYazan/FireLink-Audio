@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../config/di/service_locator.dart';
 import '../../config/theme/app_colors.dart';
+import '../blocs/history/history_cubit.dart';
 import '../blocs/home/home_cubit.dart';
 import '../blocs/home/home_state.dart';
 import '../blocs/player/player_bloc.dart';
@@ -131,6 +133,125 @@ class _HomeView extends StatelessWidget {
                         );
                       },
                     ),
+                  );
+                },
+              ),
+            ),
+
+            // ── Seção: Tocadas Recentemente ──────────
+            SliverToBoxAdapter(
+              child: BlocBuilder<HistoryCubit, HistoryState>(
+                builder: (context, historyState) {
+                  if (historyState.recentTracks.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final displayed = historyState.recentTracks.take(5).toList();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.history_rounded,
+                              color: AppColors.lilac,
+                              size: 22,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Tocadas Recentemente',
+                              style: TextStyle(
+                                color: AppColors.onSurface,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: 120,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: displayed.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final track = displayed[index];
+                            return GestureDetector(
+                              onTap: () {
+                                context.read<PlayerBloc>().add(
+                                  PlayerQueueSet(
+                                    historyState.recentTracks,
+                                    startIndex: index,
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                width: 120,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: SizedBox(
+                                        width: 120,
+                                        height: 80,
+                                        child: CachedNetworkImage(
+                                          imageUrl: track.thumbnailUrl,
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) =>
+                                              Container(
+                                                color: AppColors.surface,
+                                              ),
+                                          errorWidget: (context, url, error) =>
+                                              Container(
+                                                color: AppColors.surfaceVariant,
+                                                child: const Icon(
+                                                  Icons.music_note_rounded,
+                                                  color: AppColors
+                                                      .onSurfaceVariant,
+                                                ),
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      track.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.onSurface,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      track.artist,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.onSurfaceVariant,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),

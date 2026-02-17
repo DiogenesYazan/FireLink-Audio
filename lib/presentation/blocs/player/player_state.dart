@@ -3,6 +3,9 @@ part of 'player_bloc.dart';
 /// Status do player de áudio.
 enum PlayerStatus { idle, loading, playing, paused, error }
 
+/// Modo de repetição do player.
+enum PlayerRepeatMode { off, all, one }
+
 /// Estado do PlayerBloc.
 class PlayerState extends Equatable {
   const PlayerState({
@@ -14,6 +17,9 @@ class PlayerState extends Equatable {
     this.volume = 0.7,
     this.queue = const [],
     this.queueIndex = 0,
+    this.shuffleEnabled = false,
+    this.repeatMode = PlayerRepeatMode.off,
+    this.originalQueue = const [],
     this.errorMessage,
   });
 
@@ -25,6 +31,9 @@ class PlayerState extends Equatable {
   final double volume;
   final List<Track> queue;
   final int queueIndex;
+  final bool shuffleEnabled;
+  final PlayerRepeatMode repeatMode;
+  final List<Track> originalQueue; // Fila original antes do shuffle.
   final String? errorMessage;
 
   /// Se o player está atualmente reproduzindo áudio.
@@ -45,6 +54,9 @@ class PlayerState extends Equatable {
     double? volume,
     List<Track>? queue,
     int? queueIndex,
+    bool? shuffleEnabled,
+    PlayerRepeatMode? repeatMode,
+    List<Track>? originalQueue,
     String? errorMessage,
   }) {
     return PlayerState(
@@ -56,6 +68,9 @@ class PlayerState extends Equatable {
       volume: volume ?? this.volume,
       queue: queue ?? this.queue,
       queueIndex: queueIndex ?? this.queueIndex,
+      shuffleEnabled: shuffleEnabled ?? this.shuffleEnabled,
+      repeatMode: repeatMode ?? this.repeatMode,
+      originalQueue: originalQueue ?? this.originalQueue,
       errorMessage: errorMessage,
     );
   }
@@ -70,6 +85,9 @@ class PlayerState extends Equatable {
     volume,
     queue,
     queueIndex,
+    shuffleEnabled,
+    repeatMode,
+    originalQueue,
     errorMessage,
   ];
 }

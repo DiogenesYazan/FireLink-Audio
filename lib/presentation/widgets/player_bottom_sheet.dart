@@ -6,9 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../config/di/service_locator.dart';
 import '../../config/theme/app_colors.dart';
+import '../blocs/liked_songs/liked_songs_cubit.dart';
 import '../blocs/lyrics/lyrics_cubit.dart';
 import '../blocs/player/player_bloc.dart';
 import 'lyrics_view.dart';
+import 'queue_view.dart';
 import 'seek_bar.dart';
 
 /// Bottom sheet expansível com controles completos do player.
@@ -40,8 +42,9 @@ class PlayerBottomSheet extends StatelessWidget {
                   // Background blurred artwork.
                   Positioned.fill(
                     child: ClipRRect(
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(24)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
                       child: ImageFiltered(
                         imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
                         child: Opacity(
@@ -61,7 +64,8 @@ class PlayerBottomSheet extends StatelessWidget {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(24)),
+                          top: Radius.circular(24),
+                        ),
                         gradient: LinearGradient(
                           colors: [
                             AppColors.midnightPurple.withValues(alpha: .6),
@@ -87,7 +91,9 @@ class PlayerBottomSheet extends StatelessWidget {
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: AppColors.onSurfaceVariant.withValues(alpha: .4),
+                            color: AppColors.onSurfaceVariant.withValues(
+                              alpha: .4,
+                            ),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -103,8 +109,9 @@ class PlayerBottomSheet extends StatelessWidget {
                               decoration: BoxDecoration(
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.midnightPurple
-                                        .withValues(alpha: .6),
+                                    color: AppColors.midnightPurple.withValues(
+                                      alpha: .6,
+                                    ),
                                     blurRadius: 30,
                                     offset: const Offset(0, 10),
                                   ),
@@ -160,15 +167,48 @@ class PlayerBottomSheet extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          track.artist,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.onSurfaceVariant,
-                            fontSize: 14,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                track.artist,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.onSurfaceVariant,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Botão de like.
+                            BlocBuilder<LikedSongsCubit, LikedSongsState>(
+                              buildWhen: (prev, curr) =>
+                                  prev.likedTrackIds != curr.likedTrackIds,
+                              builder: (context, likedState) {
+                                final isLiked = likedState.likedTrackIds
+                                    .contains(track.trackId);
+                                return IconButton(
+                                  icon: Icon(
+                                    isLiked
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: isLiked
+                                        ? AppColors.lilac
+                                        : AppColors.onSurfaceVariant,
+                                    size: 24,
+                                  ),
+                                  onPressed: () {
+                                    context.read<LikedSongsCubit>().toggleLike(
+                                      track,
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 24),
@@ -187,19 +227,37 @@ class PlayerBottomSheet extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            // Shuffle
+                            IconButton(
+                              onPressed: () => context.read<PlayerBloc>().add(
+                                const PlayerShuffleToggled(),
+                              ),
+                              icon: Icon(
+                                Icons.shuffle_rounded,
+                                size: 28,
+                                color: state.shuffleEnabled
+                                    ? AppColors.lilac
+                                    : AppColors.onSurfaceVariant,
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
                             // Previous
                             IconButton(
                               onPressed: state.hasPrevious
                                   ? () => context.read<PlayerBloc>().add(
-                                      const PlayerPreviousRequested())
+                                      const PlayerPreviousRequested(),
+                                    )
                                   : null,
                               icon: Icon(
                                 Icons.skip_previous_rounded,
                                 size: 36,
                                 color: state.hasPrevious
                                     ? AppColors.onSurface
-                                    : AppColors.onSurfaceVariant
-                                        .withValues(alpha: .4),
+                                    : AppColors.onSurfaceVariant.withValues(
+                                        alpha: .4,
+                                      ),
                               ),
                             ),
 
@@ -213,17 +271,42 @@ class PlayerBottomSheet extends StatelessWidget {
                             // Next
                             IconButton(
                               onPressed: state.hasNext
-                                  ? () => context
-                                      .read<PlayerBloc>()
-                                      .add(const PlayerNextRequested())
+                                  ? () => context.read<PlayerBloc>().add(
+                                      const PlayerNextRequested(),
+                                    )
                                   : null,
                               icon: Icon(
                                 Icons.skip_next_rounded,
                                 size: 36,
                                 color: state.hasNext
                                     ? AppColors.onSurface
-                                    : AppColors.onSurfaceVariant
-                                        .withValues(alpha: .4),
+                                    : AppColors.onSurfaceVariant.withValues(
+                                        alpha: .4,
+                                      ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // Repeat
+                            IconButton(
+                              onPressed: () => context.read<PlayerBloc>().add(
+                                const PlayerRepeatModeChanged(),
+                              ),
+                              icon: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Icon(
+                                    state.repeatMode == PlayerRepeatMode.one
+                                        ? Icons.repeat_one_rounded
+                                        : Icons.repeat_rounded,
+                                    size: 28,
+                                    color:
+                                        state.repeatMode != PlayerRepeatMode.off
+                                        ? AppColors.lilac
+                                        : AppColors.onSurfaceVariant,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -234,8 +317,11 @@ class PlayerBottomSheet extends StatelessWidget {
                         // ── Volume ────────────────────────
                         Row(
                           children: [
-                            const Icon(Icons.volume_down_rounded,
-                                color: AppColors.onSurfaceVariant, size: 20),
+                            const Icon(
+                              Icons.volume_down_rounded,
+                              color: AppColors.onSurfaceVariant,
+                              size: 20,
+                            ),
                             Expanded(
                               child: Slider(
                                 value: state.volume,
@@ -246,22 +332,44 @@ class PlayerBottomSheet extends StatelessWidget {
                                     .add(PlayerVolumeChanged(v)),
                               ),
                             ),
-                            const Icon(Icons.volume_up_rounded,
-                                color: AppColors.onSurfaceVariant, size: 20),
+                            const Icon(
+                              Icons.volume_up_rounded,
+                              color: AppColors.onSurfaceVariant,
+                              size: 20,
+                            ),
                           ],
                         ),
 
                         const SizedBox(height: 16),
 
-                        // ── Botão de letras ───────────────
-                        TextButton.icon(
-                          onPressed: () => _showLyrics(context, track),
-                          icon: const Icon(Icons.lyrics_rounded,
-                              color: AppColors.lilac),
-                          label: const Text(
-                            'Ver letras',
-                            style: TextStyle(color: AppColors.lilac),
-                          ),
+                        // ── Botões de ações ───────────────
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () => _showQueue(context),
+                              icon: const Icon(
+                                Icons.queue_music_rounded,
+                                color: AppColors.lilac,
+                              ),
+                              label: const Text(
+                                'Fila',
+                                style: TextStyle(color: AppColors.lilac),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            TextButton.icon(
+                              onPressed: () => _showLyrics(context, track),
+                              icon: const Icon(
+                                Icons.lyrics_rounded,
+                                color: AppColors.lilac,
+                              ),
+                              label: const Text(
+                                'Letras',
+                                style: TextStyle(color: AppColors.lilac),
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 32),
@@ -283,12 +391,25 @@ class PlayerBottomSheet extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => BlocProvider(
-        create: (_) => sl<LyricsCubit>()
-          ..fetchLyrics(title: track.title, artist: track.artist),
+        create: (_) =>
+            sl<LyricsCubit>()
+              ..fetchLyrics(title: track.title, artist: track.artist),
         child: BlocProvider.value(
           value: context.read<PlayerBloc>(),
           child: const LyricsView(),
         ),
+      ),
+    );
+  }
+
+  void _showQueue(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BlocProvider.value(
+        value: context.read<PlayerBloc>(),
+        child: const QueueView(),
       ),
     );
   }
@@ -308,9 +429,8 @@ class _BigPlayPauseButton extends StatelessWidget {
     return GestureDetector(
       onTap: isLoading
           ? null
-          : () => context
-              .read<PlayerBloc>()
-              .add(const PlayerPlayPauseToggled()),
+          : () =>
+                context.read<PlayerBloc>().add(const PlayerPlayPauseToggled()),
       child: Container(
         width: 64,
         height: 64,
@@ -336,9 +456,7 @@ class _BigPlayPauseButton extends StatelessWidget {
                   ),
                 )
               : Icon(
-                  isPlaying
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded,
+                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   color: Colors.white,
                   size: 36,
                 ),

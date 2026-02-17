@@ -52,4 +52,10 @@ abstract final class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  static const LinearGradient purpleGradient = LinearGradient(
+    colors: [purple, deepPurple],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 }

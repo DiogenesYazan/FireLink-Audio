@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show Random;
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
@@ -6,8 +7,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
+import '../../../config/di/service_locator.dart';
 import '../../../domain/entities/track.dart';
 import '../../../domain/repositories/music_repository.dart';
+import '../history/history_cubit.dart';
 
 part 'player_event.dart';
 part 'player_state.dart';
@@ -33,6 +36,8 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     on<PlayerPreviousRequested>(_onPreviousRequested);
     on<PlayerQueueSet>(_onQueueSet);
     on<PlayerVolumeChanged>(_onVolumeChanged);
+    on<PlayerShuffleToggled>(_onShuffleToggled);
+    on<PlayerRepeatModeChanged>(_onRepeatModeChanged);
     on<_PlayerPositionUpdated>(_onPositionUpdated);
     on<_PlayerDurationReceived>(_onDurationReceived);
     on<_PlayerPlaybackStateChanged>(_onPlaybackStateChanged);
@@ -124,6 +129,13 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
       await _audioPlayer.setAudioSource(audioSource);
 
       await _audioPlayer.play();
+
+      // Adiciona ao histórico de reprodução.
+      try {
+        sl<HistoryCubit>().addToHistory(event.track);
+      } catch (_) {
+        // Ignora erros no histórico - não é crítico.
+      }
     } catch (e, stackTrace) {
       debugPrint('PlayerBloc: Erro ao reproduzir ${event.track.trackId}: $e');
       debugPrint('$stackTrace');
@@ -155,12 +167,21 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     PlayerNextRequested event,
     Emitter<PlayerState> emit,
   ) async {
-    if (!state.hasNext) return;
+    // Se há próxima, pula.
+    if (state.hasNext) {
+      final nextIndex = state.queueIndex + 1;
+      final nextTrack = state.queue[nextIndex];
+      emit(state.copyWith(queueIndex: nextIndex));
+      add(PlayerTrackSelected(nextTrack));
+      return;
+    }
 
-    final nextIndex = state.queueIndex + 1;
-    final nextTrack = state.queue[nextIndex];
-    emit(state.copyWith(queueIndex: nextIndex));
-    add(PlayerTrackSelected(nextTrack));
+    // Se PlayerRepeatMode.all e está no final, volta ao início.
+    if (state.repeatMode == PlayerRepeatMode.all && state.queue.isNotEmpty) {
+      final firstTrack = state.queue[0];
+      emit(state.copyWith(queueIndex: 0));
+      add(PlayerTrackSelected(firstTrack));
+    }
   }
 
   Future<void> _onPreviousRequested(
@@ -197,6 +218,73 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     emit(state.copyWith(volume: event.volume));
   }
 
+  void _onShuffleToggled(
+    PlayerShuffleToggled event,
+    Emitter<PlayerState> emit,
+  ) {
+    if (state.shuffleEnabled) {
+      // Desabilita shuffle — restaura fila original.
+      if (state.originalQueue.isNotEmpty) {
+        // Encontra a track atual na fila original.
+        final currentTrack = state.currentTrack;
+        if (currentTrack != null) {
+          final newIndex = state.originalQueue.indexWhere(
+            (t) => t.trackId == currentTrack.trackId,
+          );
+          emit(
+            state.copyWith(
+              shuffleEnabled: false,
+              queue: state.originalQueue,
+              queueIndex: newIndex >= 0 ? newIndex : state.queueIndex,
+              originalQueue: [],
+            ),
+          );
+        }
+      } else {
+        emit(state.copyWith(shuffleEnabled: false));
+      }
+    } else {
+      // Habilita shuffle — embaralha fila.
+      final currentTrack = state.currentTrack;
+      if (currentTrack == null || state.queue.isEmpty) {
+        return;
+      }
+
+      // Salva fila original.
+      final originalQueue = List<Track>.from(state.queue);
+
+      // Cria nova fila embaralhada.
+      final shuffledQueue = List<Track>.from(state.queue);
+      shuffledQueue.shuffle(Random());
+
+      // Move a track atual para o índice 0.
+      shuffledQueue.removeWhere((t) => t.trackId == currentTrack.trackId);
+      shuffledQueue.insert(0, currentTrack);
+
+      emit(
+        state.copyWith(
+          shuffleEnabled: true,
+          queue: shuffledQueue,
+          queueIndex: 0,
+          originalQueue: originalQueue,
+        ),
+      );
+    }
+  }
+
+  void _onRepeatModeChanged(
+    PlayerRepeatModeChanged event,
+    Emitter<PlayerState> emit,
+  ) {
+    // Cicla: off → all → one → off.
+    final nextMode = switch (state.repeatMode) {
+      PlayerRepeatMode.off => PlayerRepeatMode.all,
+      PlayerRepeatMode.all => PlayerRepeatMode.one,
+      PlayerRepeatMode.one => PlayerRepeatMode.off,
+    };
+    emit(state.copyWith(repeatMode: nextMode));
+  }
+
   // ── Handlers internos ──────────────────────────────────
 
   void _onPositionUpdated(
@@ -225,16 +313,39 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
       return;
     }
 
-    // Quando a track termina, pula para a próxima automaticamente.
+    // Quando a track termina, respeita o modo de repetição.
     if (event.processingState == ProcessingState.completed) {
-      if (state.hasNext) {
-        add(const PlayerNextRequested());
-      } else {
-        emit(
-          state.copyWith(status: PlayerStatus.paused, position: Duration.zero),
-        );
+      switch (state.repeatMode) {
+        case PlayerRepeatMode.one:
+          // Repete a track atual.
+          _audioPlayer.seek(Duration.zero);
+          _audioPlayer.play();
+          return;
+        case PlayerRepeatMode.all:
+          // Pula para a próxima, ou volta ao início da fila.
+          if (state.hasNext) {
+            add(const PlayerNextRequested());
+          } else if (state.queue.isNotEmpty) {
+            // Volta ao início da fila.
+            final firstTrack = state.queue[0];
+            emit(state.copyWith(queueIndex: 0));
+            add(PlayerTrackSelected(firstTrack));
+          }
+          return;
+        case PlayerRepeatMode.off:
+          // Para no final da fila.
+          if (state.hasNext) {
+            add(const PlayerNextRequested());
+          } else {
+            emit(
+              state.copyWith(
+                status: PlayerStatus.paused,
+                position: Duration.zero,
+              ),
+            );
+          }
+          return;
       }
-      return;
     }
 
     final status = switch (event.processingState) {

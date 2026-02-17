@@ -60,6 +60,14 @@ class PlayerVolumeChanged extends PlayerEvent {
   List<Object?> get props => [volume];
 }
 
+class PlayerShuffleToggled extends PlayerEvent {
+  const PlayerShuffleToggled();
+}
+
+class PlayerRepeatModeChanged extends PlayerEvent {
+  const PlayerRepeatModeChanged();
+}
+
 // ── Eventos internos (disparados pelos streams do just_audio) ──
 
 class _PlayerPositionUpdated extends PlayerEvent {

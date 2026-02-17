@@ -16,23 +16,95 @@ class LyricsDataSource {
 
   final http.Client _client;
 
+  /// Remove padrões comuns de títulos do SoundCloud que atrapalham
+  /// a busca de letras (ex: "Official Audio", "Lyrics", "ft.", etc.).
+  String _cleanTitle(String title) {
+    var cleaned = title;
+
+    // Remove padrões entre parênteses e colchetes.
+    cleaned = cleaned.replaceAll(
+      RegExp(
+        r'\(.*?(official|audio|video|lyrics|lyric|remix|extended|explicit|clean).*?\)',
+        caseSensitive: false,
+      ),
+      '',
+    );
+    cleaned = cleaned.replaceAll(
+      RegExp(
+        r'\[.*?(official|audio|video|lyrics|lyric|remix|extended|explicit|clean).*?\]',
+        caseSensitive: false,
+      ),
+      '',
+    );
+
+    // Remove "feat.", "ft.", "featuring", "with".
+    cleaned = cleaned.replaceAll(
+      RegExp(r'\s+(feat\.?|ft\.?|featuring|with)\s+.*', caseSensitive: false),
+      '',
+    );
+
+    // Remove "prod. by", "produced by".
+    cleaned = cleaned.replaceAll(
+      RegExp(r'\s+(prod\.?\s+by|produced\s+by)\s+.*', caseSensitive: false),
+      '',
+    );
+
+    // Remove múltiplos espaços e trim.
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return cleaned;
+  }
+
+  /// Remove padrões comuns de nomes de artistas que podem atrapalhar a busca.
+  String _cleanArtist(String artist) {
+    var cleaned = artist;
+
+    // Remove "@" do início (comum em usernames do SoundCloud).
+    cleaned = cleaned.replaceAll(RegExp(r'^@'), '');
+
+    // Remove padrões entre parênteses.
+    cleaned = cleaned.replaceAll(RegExp(r'\(.*?\)'), '');
+
+    // Remove múltiplos espaços e trim.
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return cleaned;
+  }
+
   /// Busca letras para [trackName] do artista [artistName].
   ///
+  /// Aplica limpeza nos nomes para remover padrões que atrapalham
+  /// a busca (ex: "Official Audio", "feat.", etc.).
+  ///
   /// Tenta primeiro uma busca por campos (track_name + artist_name)
-  /// e, se não encontrar resultados, faz fallback para busca geral.
+  /// com nomes limpos, depois com originais como fallback.
   ///
   /// Retorna `null` se nenhuma letra for encontrada.
   Future<LyricsModel?> searchLyrics({
     required String trackName,
     required String artistName,
   }) async {
-    // Tentativa 1: busca por campos específicos.
+    // Limpa os nomes.
+    final cleanedTitle = _cleanTitle(trackName);
+    final cleanedArtist = _cleanArtist(artistName);
+
+    // Tentativa 1: busca com nomes limpos.
     var result = await _fetchLyrics(
-      queryParams: {'track_name': trackName, 'artist_name': artistName},
+      queryParams: {'track_name': cleanedTitle, 'artist_name': cleanedArtist},
     );
 
-    // Tentativa 2: busca geral como fallback.
-    result ??= await _fetchLyrics(queryParams: {'q': '$trackName $artistName'});
+    // Tentativa 2: busca geral com nomes limpos.
+    result ??= await _fetchLyrics(
+      queryParams: {'q': '$cleanedTitle $cleanedArtist'},
+    );
+
+    // Tentativa 3: fallback com nomes originais (se diferentes dos limpos).
+    if (result == null &&
+        (cleanedTitle != trackName || cleanedArtist != artistName)) {
+      result = await _fetchLyrics(
+        queryParams: {'track_name': trackName, 'artist_name': artistName},
+      );
+    }
 
     return result;
   }

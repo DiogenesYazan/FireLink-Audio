@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../config/theme/app_colors.dart';
 import '../../core/utils/duration_formatter.dart';
 import '../../domain/entities/track.dart';
+import '../blocs/liked_songs/liked_songs_cubit.dart';
+import 'equalizer_animation.dart';
 
 /// Tile de uma track para listas (busca, home, fila).
 ///
@@ -26,30 +29,45 @@ class TrackTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          width: 56,
-          height: 56,
-          child: CachedNetworkImage(
-            imageUrl: track.thumbnailUrl,
-            fit: BoxFit.cover,
-            placeholder: (_, _) => Container(
-              color: AppColors.surfaceVariant,
-              child: const Icon(
-                Icons.music_note_rounded,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            errorWidget: (_, _, _) => Container(
-              color: AppColors.surfaceVariant,
-              child: const Icon(
-                Icons.music_note_rounded,
-                color: AppColors.onSurfaceVariant,
+      leading: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 56,
+              height: 56,
+              child: CachedNetworkImage(
+                imageUrl: track.thumbnailUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Container(
+                  color: AppColors.surfaceVariant,
+                  child: const Icon(
+                    Icons.music_note_rounded,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                errorWidget: (_, _, _) => Container(
+                  color: AppColors.surfaceVariant,
+                  child: const Icon(
+                    Icons.music_note_rounded,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+          // Overlay de equalizer quando está tocando.
+          if (isPlaying)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.lilac.withValues(alpha: .2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(child: EqualizerAnimation()),
+              ),
+            ),
+        ],
       ),
       title: Text(
         track.title,
@@ -69,12 +87,39 @@ class TrackTile extends StatelessWidget {
       ),
       trailing:
           trailing ??
-          Text(
-            formatDuration(track.duration),
-            style: const TextStyle(
-              color: AppColors.onSurfaceVariant,
-              fontSize: 12,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Botão de like.
+              BlocBuilder<LikedSongsCubit, LikedSongsState>(
+                buildWhen: (prev, curr) =>
+                    prev.likedTrackIds != curr.likedTrackIds,
+                builder: (context, state) {
+                  final isLiked = state.likedTrackIds.contains(track.trackId);
+                  return IconButton(
+                    icon: Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked
+                          ? AppColors.lilac
+                          : AppColors.onSurfaceVariant,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      context.read<LikedSongsCubit>().toggleLike(track);
+                    },
+                  );
+                },
+              ),
+              const SizedBox(width: 4),
+              // Duração.
+              Text(
+                formatDuration(track.duration),
+                style: const TextStyle(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
       onTap: onTap,
     );
