@@ -6,6 +6,10 @@ Cliente de música open-source de alta fidelidade, construído com **Flutter** e
 ![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
+## 📸 Preview
+
+![FireLink Audio - Telas do App](https://i.imgur.com/VNJZZh0.png)
+
 ## ✨ Funcionalidades
 
 ### 🎵 Reprodução & Controle
@@ -84,7 +88,7 @@ lib/
 
 - Flutter SDK ^3.11.0
 - Dart ^3.11.0
-- Android Studio / Xcode (para emuladores mobile)
+- Android Studio (para emuladores Android)
 
 ### Setup
 
@@ -105,8 +109,6 @@ flutter run
 - ✅ **Windows** — Funcional (testado)
 - ✅ **Android** — Funcional (background playback + notificação)
 - ⚠️ **Linux** — Suportado via just_audio_media_kit (não testado)
-- ⚠️ **macOS** — Suportado via just_audio_media_kit (não testado)
-- ⚠️ **iOS** — Suportado (requer configuração adicional de permissões)
 - ❌ **Web** — Limitações (sem background playback)
 
 ## 🎨 Design System
