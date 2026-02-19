@@ -10,6 +10,7 @@ import '../../../config/di/service_locator.dart';
 import '../../../domain/entities/track.dart';
 import '../../../domain/repositories/music_repository.dart';
 import '../history/history_cubit.dart';
+import '../theme/dynamic_theme_cubit.dart';
 
 part 'player_event.dart';
 part 'player_state.dart';
@@ -50,6 +51,9 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     on<_PlayerDurationReceived>(_onDurationReceived);
     on<_PlayerPlayingChanged>(_onPlayingChanged);
     on<_PlayerCompleted>(_onCompleted);
+    on<PlayerAddNext>(_onAddNext);
+    on<PlayerAddToQueue>(_onAddToQueue);
+    on<PlayerArtistRadioStarted>(_onArtistRadio);
 
     // Subscrever nos streams do media_kit Player.
     _listenToPlayer();
@@ -129,6 +133,11 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
       } catch (_) {
         // Ignora erros no histórico - não é crítico.
       }
+
+      // Extrai cor dominante da arte do álbum.
+      try {
+        sl<DynamicThemeCubit>().extractFromUrl(event.track.thumbnailUrl);
+      } catch (_) {}
     } catch (e, stackTrace) {
       debugPrint('PlayerBloc: Erro ao reproduzir ${event.track.trackId}: $e');
       debugPrint('$stackTrace');
@@ -332,8 +341,11 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
           if (currentTrack != null) {
             emit(state.copyWith(status: PlayerStatus.loading));
             try {
+              // Coleta IDs já na fila para evitar repetição.
+              final queueIds = state.queue.map((t) => t.trackId).toSet();
               final relatedTrack = await _musicRepository.getRelatedTrack(
                 currentTrack,
+                excludeIds: queueIds,
               );
 
               if (relatedTrack != null) {
@@ -363,6 +375,56 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
           );
         }
         return;
+    }
+  }
+
+  // ── Queue Management ──
+
+  void _onAddNext(PlayerAddNext event, Emitter<PlayerState> emit) {
+    final newQueue = List<Track>.from(state.queue);
+    final insertIndex = state.queueIndex + 1;
+    newQueue.insert(insertIndex.clamp(0, newQueue.length), event.track);
+    emit(state.copyWith(queue: newQueue));
+  }
+
+  void _onAddToQueue(PlayerAddToQueue event, Emitter<PlayerState> emit) {
+    final newQueue = List<Track>.from(state.queue)..add(event.track);
+    emit(state.copyWith(queue: newQueue));
+  }
+
+  // ── Artist Radio ──
+
+  Future<void> _onArtistRadio(
+    PlayerArtistRadioStarted event,
+    Emitter<PlayerState> emit,
+  ) async {
+    emit(state.copyWith(status: PlayerStatus.loading));
+    try {
+      final tracks = await _musicRepository.searchTracks(
+        '${event.artistName} official audio',
+      );
+
+      // Filtra compilações e remove duplicatas.
+      final filtered = tracks.where((t) => t.duration.inMinutes <= 10).toList();
+
+      if (filtered.isNotEmpty) {
+        // Shuffle para variar.
+        filtered.shuffle(Random());
+        emit(
+          state.copyWith(
+            queue: filtered,
+            queueIndex: 0,
+            shuffleEnabled: false,
+            originalQueue: filtered,
+          ),
+        );
+        add(PlayerTrackSelected(filtered.first));
+      } else {
+        emit(state.copyWith(status: PlayerStatus.idle));
+      }
+    } catch (e) {
+      debugPrint('PlayerBloc: Erro ao iniciar Artist Radio: $e');
+      emit(state.copyWith(status: PlayerStatus.idle));
     }
   }
 

@@ -21,11 +21,15 @@ class YoutubeMusicRepository implements MusicRepository {
   }
 
   @override
-  Future<Track?> getRelatedTrack(Track track) async {
+  Future<Track?> getRelatedTrack(
+    Track track, {
+    Set<String> excludeIds = const {},
+  }) async {
     return _yt.getRelatedVideo(
       title: track.title,
       artist: track.artist,
       currentId: track.trackId,
+      excludeIds: excludeIds,
     );
   }
 

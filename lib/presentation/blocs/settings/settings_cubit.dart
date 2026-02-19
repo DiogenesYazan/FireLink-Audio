@@ -18,17 +18,25 @@ class SettingsCubit extends Cubit<SettingsState> {
   final CacheManager _cacheManager;
 
   static const String _cacheLimitKey = 'settings_cache_limit_mb';
+  static const String _crossfadeKey = 'settings_crossfade_seconds';
+  static const String _volumeNormKey = 'settings_volume_normalization';
 
-  /// Carrega settings salvos e atualiza o tamanho do cache.
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final savedLimit = prefs.getInt(_cacheLimitKey) ?? 500;
+    final savedCrossfade = prefs.getInt(_crossfadeKey) ?? 0;
+    final savedNorm = prefs.getBool(_volumeNormKey) ?? false;
 
-    emit(state.copyWith(cacheLimitMB: savedLimit));
+    emit(
+      state.copyWith(
+        cacheLimitMB: savedLimit,
+        crossfadeSeconds: savedCrossfade,
+        volumeNormalization: savedNorm,
+      ),
+    );
     await refreshCacheInfo();
   }
 
-  /// Atualiza as informações de tamanho do cache.
   Future<void> refreshCacheInfo() async {
     try {
       final sizeBytes = await _cacheManager.getCacheSizeBytes();
@@ -41,31 +49,38 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// Altera o limite de cache (em MB) e salva a preferência.
   Future<void> setCacheLimit(int limitMB) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_cacheLimitKey, limitMB);
-
     emit(state.copyWith(cacheLimitMB: limitMB));
-
-    // Aplica o novo limite imediatamente.
     await _cacheManager.enforceCacheLimit(limitMB);
     await refreshCacheInfo();
   }
 
-  /// Limpa todo o cache manualmente.
   Future<void> clearCache() async {
     emit(state.copyWith(isClearing: true));
-
     await _cacheManager.clearCache();
     await refreshCacheInfo();
-
     emit(state.copyWith(isClearing: false));
   }
 
-  /// Aplica o limite de cache (chamado após cada download).
   Future<void> enforceCacheLimit() async {
     await _cacheManager.enforceCacheLimit(state.cacheLimitMB);
     await refreshCacheInfo();
+  }
+
+  /// Define a duração do crossfade (0-12 segundos).
+  Future<void> setCrossfade(int seconds) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_crossfadeKey, seconds);
+    emit(state.copyWith(crossfadeSeconds: seconds));
+  }
+
+  /// Alterna a normalização de volume.
+  Future<void> toggleVolumeNormalization() async {
+    final prefs = await SharedPreferences.getInstance();
+    final newValue = !state.volumeNormalization;
+    await prefs.setBool(_volumeNormKey, newValue);
+    emit(state.copyWith(volumeNormalization: newValue));
   }
 }

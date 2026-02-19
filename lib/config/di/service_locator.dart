@@ -20,6 +20,10 @@ import 'package:firelink_audio/presentation/blocs/offline/offline_cubit.dart';
 import 'package:firelink_audio/presentation/blocs/player/player_bloc.dart';
 import 'package:firelink_audio/presentation/blocs/search/search_bloc.dart';
 import 'package:firelink_audio/presentation/blocs/settings/settings_cubit.dart';
+import 'package:firelink_audio/presentation/blocs/sleep_timer/sleep_timer_cubit.dart';
+import 'package:firelink_audio/presentation/blocs/playlist/playlist_cubit.dart';
+import 'package:firelink_audio/presentation/blocs/theme/dynamic_theme_cubit.dart';
+import 'package:firelink_audio/data/datasources/playlist_manager.dart';
 
 /// Service locator global para injeção de dependências.
 final sl = GetIt.instance;
@@ -97,4 +101,20 @@ void setupDependencies() {
   sl.registerLazySingleton<OfflineCubit>(
     () => OfflineCubit(offlineManager: sl<OfflineManager>()),
   );
+
+  // SleepTimerCubit é singleton — gerencia timer global.
+  sl.registerLazySingleton<SleepTimerCubit>(
+    () => SleepTimerCubit(playerBloc: sl<PlayerBloc>()),
+  );
+
+  // PlaylistManager — CRUD de playlists locais.
+  sl.registerLazySingleton<PlaylistManager>(() => PlaylistManager());
+
+  // PlaylistCubit — gerencia estado de playlists.
+  sl.registerLazySingleton<PlaylistCubit>(
+    () => PlaylistCubit(playlistManager: sl<PlaylistManager>()),
+  );
+
+  // DynamicThemeCubit — tema baseado na arte do álbum.
+  sl.registerLazySingleton<DynamicThemeCubit>(() => DynamicThemeCubit());
 }

@@ -88,3 +88,30 @@ class _PlayerPlayingChanged extends PlayerEvent {
 class _PlayerCompleted extends PlayerEvent {
   const _PlayerCompleted();
 }
+
+/// Insere uma track na posição seguinte da fila.
+class PlayerAddNext extends PlayerEvent {
+  const PlayerAddNext(this.track);
+  final Track track;
+
+  @override
+  List<Object?> get props => [track];
+}
+
+/// Adiciona uma track ao final da fila.
+class PlayerAddToQueue extends PlayerEvent {
+  const PlayerAddToQueue(this.track);
+  final Track track;
+
+  @override
+  List<Object?> get props => [track];
+}
+
+/// Inicia uma "Rádio do Artista" — busca múltiplas tracks e monta a fila.
+class PlayerArtistRadioStarted extends PlayerEvent {
+  const PlayerArtistRadioStarted(this.artistName);
+  final String artistName;
+
+  @override
+  List<Object?> get props => [artistName];
+}

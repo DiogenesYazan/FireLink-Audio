@@ -11,7 +11,11 @@ abstract class MusicRepository {
   Future<List<Track>> getTrendingTracks({String genre = 'all-music'});
 
   /// Retorna uma track recomendada/relacionada para autoplay.
-  Future<Track?> getRelatedTrack(Track track);
+  /// [excludeIds] são IDs de tracks que já estão na fila.
+  Future<Track?> getRelatedTrack(
+    Track track, {
+    Set<String> excludeIds = const {},
+  });
 
   /// Baixa o áudio da track e retorna o caminho do arquivo local.
   Future<String> getPlayableFilePath(String trackId);

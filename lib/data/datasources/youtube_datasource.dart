@@ -115,34 +115,104 @@ class YoutubeDataSource {
     return unique;
   }
 
-  /// Busca um vídeo relacionado usando a estratégia de busca (fallback robusto).
+  /// Busca um vídeo DIFERENTE do artista atual para autoplay.
+  ///
+  /// Estratégia:
+  /// 1. Busca pelo ARTISTA (sem o título) para encontrar outras músicas.
+  /// 2. Filtra variantes do mesmo título (live, remaster, tradução, etc.).
+  /// 3. Evita IDs que já estão na fila.
   Future<TrackModel?> getRelatedVideo({
     required String title,
     required String artist,
     required String currentId,
+    Set<String> excludeIds = const {},
   }) async {
     try {
-      // Busca pelo título + artista.
-      final query = '$title $artist official audio';
+      // Extrai palavras-chave do título atual para filtrar variantes.
+      final titleKeywords = _extractKeywords(title);
+
+      // Busca pelo ARTISTA apenas — traz outras músicas do mesmo artista.
+      final query = '$artist popular songs';
       final results = await _ytExplode.search.search(query);
 
-      // Pega o primeiro que não seja o vídeo atual.
       for (final video in results) {
-        if (video.id.value != currentId &&
-            (video.duration?.inMinutes ?? 0) <= 15) {
-          return TrackModel(
-            trackId: video.id.value,
-            title: video.title,
-            artist: video.author,
-            duration: video.duration ?? Duration.zero,
-            thumbnailUrl: video.thumbnails.highResUrl,
-          );
-        }
+        final videoId = video.id.value;
+
+        // Pula o vídeo atual e os que já estão na fila.
+        if (videoId == currentId || excludeIds.contains(videoId)) continue;
+
+        // Pula compilações (> 15 min).
+        if ((video.duration?.inMinutes ?? 0) > 15) continue;
+
+        // Pula variantes do mesmo título.
+        final videoKeywords = _extractKeywords(video.title);
+        if (_isSimilarTitle(titleKeywords, videoKeywords)) continue;
+
+        return TrackModel(
+          trackId: videoId,
+          title: video.title,
+          artist: video.author,
+          duration: video.duration ?? Duration.zero,
+          thumbnailUrl: video.thumbnails.highResUrl,
+        );
       }
     } catch (e) {
       debugPrint('YoutubeDataSource: Erro ao buscar related de $currentId: $e');
     }
     return null;
+  }
+
+  /// Extrai palavras-chave significativas de um título (ignora ruído).
+  Set<String> _extractKeywords(String title) {
+    // Remove termos comuns de variante/ruído.
+    final noise = {
+      'official',
+      'audio',
+      'video',
+      'music',
+      'hd',
+      'hq',
+      'lyrics',
+      'lyric',
+      'live',
+      'ao',
+      'vivo',
+      'remaster',
+      'remastered',
+      'remix',
+      'cover',
+      'acoustic',
+      'version',
+      'ft',
+      'feat',
+      'featuring',
+      'tradução',
+      'legendado',
+      'sub',
+      'extended',
+      'edit',
+      'mix',
+      'performance',
+      'concert',
+      'tour',
+      'session',
+      'visualizer',
+    };
+    return title
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '') // Remove pontuação
+        .split(RegExp(r'\s+'))
+        .where((w) => w.length > 1 && !noise.contains(w))
+        .toSet();
+  }
+
+  /// Verifica se dois conjuntos de keywords representam a mesma música.
+  /// Se >= 60% das palavras-chave do título original aparecem no candidato,
+  /// considera variante.
+  bool _isSimilarTitle(Set<String> original, Set<String> candidate) {
+    if (original.isEmpty) return false;
+    final overlap = original.intersection(candidate).length;
+    return overlap / original.length >= 0.6;
   }
 
   /// Baixa o áudio do vídeo para um arquivo temporário local.
@@ -216,10 +286,6 @@ class YoutubeDataSource {
         'YoutubeDataSource: AVISO - Nenhum MP4 encontrado. Tentando WebM provalvelmente falhará no Windows.',
       );
       streamInfo = manifest.audioOnly.withHighestBitrate();
-    }
-
-    if (streamInfo == null) {
-      throw Exception('Nenhum stream disponível para $videoId');
     }
 
     final ext = streamInfo.container.name; // 'mp4' ou 'webm'

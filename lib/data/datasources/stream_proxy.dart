@@ -74,10 +74,6 @@ class StreamProxyService {
       // 2. Escolhe o melhor stream de áudio (audio-only, maior bitrate).
       final audioStreamInfo = manifest.audioOnly.withHighestBitrate();
 
-      if (audioStreamInfo == null) {
-        throw Exception('Nenhum stream de áudio encontrado para $videoId');
-      }
-
       // 3. Abre o stream real do YouTube.
       final stream = _yt.videos.streamsClient.get(audioStreamInfo);
 

@@ -11,6 +11,8 @@ import '../blocs/lyrics/lyrics_cubit.dart';
 import '../blocs/offline/offline_cubit.dart';
 import '../blocs/offline/offline_state.dart';
 import '../blocs/player/player_bloc.dart';
+import '../blocs/sleep_timer/sleep_timer_cubit.dart';
+import '../blocs/theme/dynamic_theme_cubit.dart';
 import 'lyrics_view.dart';
 import 'queue_view.dart';
 import 'seek_bar.dart';
@@ -61,22 +63,29 @@ class PlayerBottomSheet extends StatelessWidget {
                     ),
                   ),
 
-                  // Overlay gradiente.
+                  // Overlay gradiente (dinâmico baseado na arte).
                   Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.midnightPurple.withValues(alpha: .6),
-                            AppColors.background.withValues(alpha: .95),
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
+                    child: BlocBuilder<DynamicThemeCubit, DynamicThemeState>(
+                      builder: (context, themeState) {
+                        final gradientColor =
+                            themeState.mutedColor ?? AppColors.midnightPurple;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 800),
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(24),
+                            ),
+                            gradient: LinearGradient(
+                              colors: [
+                                gradientColor.withValues(alpha: .7),
+                                AppColors.background.withValues(alpha: .95),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
 
@@ -419,6 +428,33 @@ class PlayerBottomSheet extends StatelessWidget {
                                 style: TextStyle(color: AppColors.lilac),
                               ),
                             ),
+                            const SizedBox(width: 16),
+                            // Sleep Timer.
+                            BlocBuilder<SleepTimerCubit, SleepTimerState>(
+                              builder: (context, timerState) {
+                                return TextButton.icon(
+                                  onPressed: () => _showSleepTimer(context),
+                                  icon: Icon(
+                                    timerState.isActive
+                                        ? Icons.bedtime_rounded
+                                        : Icons.bedtime_outlined,
+                                    color: timerState.isActive
+                                        ? AppColors.lilac
+                                        : AppColors.onSurfaceVariant,
+                                  ),
+                                  label: Text(
+                                    timerState.isActive
+                                        ? timerState.remainingText
+                                        : 'Timer',
+                                    style: TextStyle(
+                                      color: timerState.isActive
+                                          ? AppColors.lilac
+                                          : AppColors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
 
@@ -460,6 +496,93 @@ class PlayerBottomSheet extends StatelessWidget {
       builder: (_) => BlocProvider.value(
         value: context.read<PlayerBloc>(),
         child: const QueueView(),
+      ),
+    );
+  }
+
+  void _showSleepTimer(BuildContext context) {
+    final cubit = context.read<SleepTimerCubit>();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => BlocProvider.value(
+        value: cubit,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            child: BlocBuilder<SleepTimerCubit, SleepTimerState>(
+              builder: (ctx, timerState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.onSurfaceVariant.withValues(alpha: .3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Text(
+                      timerState.isActive
+                          ? 'Timer ativo: ${timerState.remainingText}'
+                          : 'Sleep Timer',
+                      style: const TextStyle(
+                        color: AppColors.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (timerState.isActive)
+                      // Cancel button.
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error.withValues(
+                              alpha: .2,
+                            ),
+                            foregroundColor: AppColors.error,
+                          ),
+                          onPressed: () {
+                            cubit.cancel();
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Cancelar Timer'),
+                        ),
+                      )
+                    else
+                      // Preset buttons.
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [5, 10, 15, 30, 45, 60].map((min) {
+                          return ActionChip(
+                            label: Text('$min min'),
+                            labelStyle: const TextStyle(
+                              color: AppColors.onSurface,
+                            ),
+                            backgroundColor: AppColors.surfaceVariant,
+                            side: BorderSide.none,
+                            onPressed: () {
+                              cubit.start(Duration(minutes: min));
+                              Navigator.pop(ctx);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    const SizedBox(height: 16),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }

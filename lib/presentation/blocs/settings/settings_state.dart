@@ -7,31 +7,36 @@ class SettingsState extends Equatable {
     this.cacheSizeMB = 0.0,
     this.cacheFileCount = 0,
     this.isClearing = false,
+    this.crossfadeSeconds = 0,
+    this.volumeNormalization = false,
   });
 
-  /// Limite máximo de cache em MB (configurável pelo usuário).
   final int cacheLimitMB;
-
-  /// Tamanho atual do cache em MB.
   final double cacheSizeMB;
-
-  /// Número de arquivos no cache.
   final int cacheFileCount;
-
-  /// Se está em processo de limpeza.
   final bool isClearing;
+
+  /// Duração do crossfade em segundos (0 = desativado).
+  final int crossfadeSeconds;
+
+  /// Se a normalização de volume está ativada.
+  final bool volumeNormalization;
 
   SettingsState copyWith({
     int? cacheLimitMB,
     double? cacheSizeMB,
     int? cacheFileCount,
     bool? isClearing,
+    int? crossfadeSeconds,
+    bool? volumeNormalization,
   }) {
     return SettingsState(
       cacheLimitMB: cacheLimitMB ?? this.cacheLimitMB,
       cacheSizeMB: cacheSizeMB ?? this.cacheSizeMB,
       cacheFileCount: cacheFileCount ?? this.cacheFileCount,
       isClearing: isClearing ?? this.isClearing,
+      crossfadeSeconds: crossfadeSeconds ?? this.crossfadeSeconds,
+      volumeNormalization: volumeNormalization ?? this.volumeNormalization,
     );
   }
 
@@ -41,5 +46,7 @@ class SettingsState extends Equatable {
     cacheSizeMB,
     cacheFileCount,
     isClearing,
+    crossfadeSeconds,
+    volumeNormalization,
   ];
 }

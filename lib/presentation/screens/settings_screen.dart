@@ -53,6 +53,23 @@ class SettingsScreen extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
+                // ── Seção: Reprodução ─────────────────────
+                _buildSectionHeader(
+                  icon: Icons.tune_rounded,
+                  title: 'Reprodução',
+                ),
+                const SizedBox(height: 12),
+
+                // Crossfade slider.
+                _buildCrossfadeSlider(context, state),
+
+                const SizedBox(height: 16),
+
+                // Volume Normalization toggle.
+                _buildVolumeNormalizationTile(context, state),
+
+                const SizedBox(height: 32),
+
                 // ── Seção: Sobre ────────────────────────────
                 _buildSectionHeader(
                   icon: Icons.info_outline_rounded,
@@ -351,6 +368,123 @@ class SettingsScreen extends StatelessWidget {
               ),
               child: const Text('Visitar Portfolio'),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCrossfadeSlider(BuildContext context, SettingsState state) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.swap_horiz_rounded,
+                color: AppColors.lilac,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Crossfade',
+                style: TextStyle(
+                  color: AppColors.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                state.crossfadeSeconds == 0
+                    ? 'Desativado'
+                    : '${state.crossfadeSeconds}s',
+                style: const TextStyle(
+                  color: AppColors.lilac,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: AppColors.lilac,
+              inactiveTrackColor: AppColors.surfaceVariant,
+              thumbColor: AppColors.lilac,
+              overlayColor: AppColors.lilac.withValues(alpha: .2),
+              trackHeight: 4,
+            ),
+            child: Slider(
+              value: state.crossfadeSeconds.toDouble(),
+              min: 0,
+              max: 12,
+              divisions: 12,
+              label: state.crossfadeSeconds == 0
+                  ? 'Off'
+                  : '${state.crossfadeSeconds}s',
+              onChanged: (value) {
+                context.read<SettingsCubit>().setCrossfade(value.round());
+              },
+            ),
+          ),
+          const Text(
+            'Transição suave entre músicas',
+            style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVolumeNormalizationTile(
+    BuildContext context,
+    SettingsState state,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.equalizer_rounded, color: AppColors.lilac, size: 20),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Normalização de Volume',
+                  style: TextStyle(
+                    color: AppColors.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  'Volume consistente entre faixas',
+                  style: TextStyle(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: state.volumeNormalization,
+            activeThumbColor: AppColors.lilac,
+            onChanged: (_) {
+              context.read<SettingsCubit>().toggleVolumeNormalization();
+            },
           ),
         ],
       ),
