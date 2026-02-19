@@ -68,7 +68,7 @@ class PlayerRepeatModeChanged extends PlayerEvent {
   const PlayerRepeatModeChanged();
 }
 
-// ── Eventos internos (disparados pelos streams do just_audio) ──
+// ── Eventos internos (disparados pelos streams do media_kit) ──
 
 class _PlayerPositionUpdated extends PlayerEvent {
   const _PlayerPositionUpdated(this.position);
@@ -80,8 +80,11 @@ class _PlayerDurationReceived extends PlayerEvent {
   final Duration duration;
 }
 
-class _PlayerPlaybackStateChanged extends PlayerEvent {
-  const _PlayerPlaybackStateChanged(this.playing, this.processingState);
+class _PlayerPlayingChanged extends PlayerEvent {
+  const _PlayerPlayingChanged(this.playing);
   final bool playing;
-  final ProcessingState processingState;
+}
+
+class _PlayerCompleted extends PlayerEvent {
+  const _PlayerCompleted();
 }

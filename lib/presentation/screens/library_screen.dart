@@ -5,9 +5,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../config/theme/app_colors.dart';
 import '../blocs/history/history_cubit.dart';
 import '../blocs/liked_songs/liked_songs_cubit.dart';
+import '../blocs/offline/offline_cubit.dart';
+import '../blocs/offline/offline_state.dart';
 import '../blocs/player/player_bloc.dart';
+import '../blocs/settings/settings_cubit.dart';
 import '../widgets/gradient_background.dart';
 import 'liked_songs_screen.dart';
+import 'offline_tracks_screen.dart';
+import 'settings_screen.dart';
 
 /// Tela de biblioteca com músicas curtidas e histórico.
 class LibraryScreen extends StatelessWidget {
@@ -19,10 +24,31 @@ class LibraryScreen extends StatelessWidget {
       child: SafeArea(
         child: CustomScrollView(
           slivers: [
-            const SliverAppBar(
+            SliverAppBar(
               floating: true,
               backgroundColor: Colors.transparent,
-              title: Text('Biblioteca'),
+              title: const Text('Biblioteca'),
+              actions: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.settings_rounded,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                  tooltip: 'Configurações',
+                  onPressed: () {
+                    // Atualiza info do cache ao abrir.
+                    context.read<SettingsCubit>().refreshCacheInfo();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: context.read<SettingsCubit>(),
+                          child: const SettingsScreen(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
@@ -116,6 +142,94 @@ class LibraryScreen extends StatelessWidget {
                 },
               ),
             ),
+
+            // Downloads Card.
+            SliverToBoxAdapter(
+              child: BlocBuilder<OfflineCubit, OfflineState>(
+                builder: (context, state) {
+                  final count = state.tracks.length;
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => BlocProvider.value(
+                              value: context.read<OfflineCubit>(),
+                              child: BlocProvider.value(
+                                value: context.read<PlayerBloc>(),
+                                child: const OfflineTracksScreen(),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.lilac.withValues(alpha: .15),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 24),
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: AppColors.lilac.withValues(alpha: .1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.download_done_rounded,
+                                size: 28,
+                                color: AppColors.lilac,
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Downloads',
+                                    style: TextStyle(
+                                      color: AppColors.onSurface,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$count ${count == 1 ? "música" : "músicas"}',
+                                    style: TextStyle(
+                                      color: AppColors.onSurfaceVariant,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              color: AppColors.onSurfaceVariant,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
             // Tocadas Recentemente Header.
             const SliverToBoxAdapter(

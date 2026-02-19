@@ -6,6 +6,8 @@ import '../../config/theme/app_colors.dart';
 import '../../core/utils/duration_formatter.dart';
 import '../../domain/entities/track.dart';
 import '../blocs/liked_songs/liked_songs_cubit.dart';
+import '../blocs/offline/offline_cubit.dart';
+import '../blocs/offline/offline_state.dart';
 import 'equalizer_animation.dart';
 
 /// Tile de uma track para listas (busca, home, fila).
@@ -92,8 +94,6 @@ class TrackTile extends StatelessWidget {
             children: [
               // Botão de like.
               BlocBuilder<LikedSongsCubit, LikedSongsState>(
-                buildWhen: (prev, curr) =>
-                    prev.likedTrackIds != curr.likedTrackIds,
                 builder: (context, state) {
                   final isLiked = state.likedTrackIds.contains(track.trackId);
                   return IconButton(
@@ -106,6 +106,46 @@ class TrackTile extends StatelessWidget {
                     ),
                     onPressed: () {
                       context.read<LikedSongsCubit>().toggleLike(track);
+                    },
+                  );
+                },
+              ),
+              // Botão de download offline.
+              BlocBuilder<OfflineCubit, OfflineState>(
+                builder: (context, state) {
+                  final isDownloaded = state.isOffline(track.trackId);
+                  final isDownloading = state.isDownloading(track.trackId);
+
+                  if (isDownloading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.lilac,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return IconButton(
+                    icon: Icon(
+                      isDownloaded
+                          ? Icons.download_done_rounded
+                          : Icons.download_rounded,
+                      color: isDownloaded
+                          ? AppColors.lilac
+                          : AppColors.onSurfaceVariant,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      if (isDownloaded) {
+                        context.read<OfflineCubit>().removeTrack(track.trackId);
+                      } else {
+                        context.read<OfflineCubit>().downloadTrack(track);
+                      }
                     },
                   );
                 },

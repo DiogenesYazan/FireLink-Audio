@@ -8,6 +8,8 @@ import '../../config/di/service_locator.dart';
 import '../../config/theme/app_colors.dart';
 import '../blocs/liked_songs/liked_songs_cubit.dart';
 import '../blocs/lyrics/lyrics_cubit.dart';
+import '../blocs/offline/offline_cubit.dart';
+import '../blocs/offline/offline_state.dart';
 import '../blocs/player/player_bloc.dart';
 import 'lyrics_view.dart';
 import 'queue_view.dart';
@@ -204,6 +206,54 @@ class PlayerBottomSheet extends StatelessWidget {
                                     context.read<LikedSongsCubit>().toggleLike(
                                       track,
                                     );
+                                  },
+                                );
+                              },
+                            ),
+                            // ── Download Button ──
+                            BlocBuilder<OfflineCubit, OfflineState>(
+                              builder: (context, offlineState) {
+                                final isDownloaded = offlineState.isOffline(
+                                  track.trackId,
+                                );
+                                final isDownloading = offlineState
+                                    .isDownloading(track.trackId);
+
+                                if (isDownloading) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.lilac,
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                return IconButton(
+                                  icon: Icon(
+                                    isDownloaded
+                                        ? Icons.download_done_rounded
+                                        : Icons.download_rounded,
+                                    color: isDownloaded
+                                        ? AppColors.lilac
+                                        : AppColors.onSurfaceVariant,
+                                    size: 24,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    if (isDownloaded) {
+                                      context.read<OfflineCubit>().removeTrack(
+                                        track.trackId,
+                                      );
+                                    } else {
+                                      context
+                                          .read<OfflineCubit>()
+                                          .downloadTrack(track);
+                                    }
                                   },
                                 );
                               },

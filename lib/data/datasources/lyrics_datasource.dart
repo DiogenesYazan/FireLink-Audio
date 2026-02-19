@@ -88,22 +88,29 @@ class LyricsDataSource {
     final cleanedTitle = _cleanTitle(trackName);
     final cleanedArtist = _cleanArtist(artistName);
 
-    // Tentativa 1: busca com nomes limpos.
-    var result = await _fetchLyrics(
-      queryParams: {'track_name': cleanedTitle, 'artist_name': cleanedArtist},
-    );
+    // Estratégia atualizada:
+    // 1) Busca por título limpo sozinho (prioridade solicitada);
+    // 2) Busca por título + artista limpos (maior precisão);
+    // 3) Busca geral combinada (q) com título+artista limpos;
+    // 4) Fallback com nomes originais se necessário.
 
-    // Tentativa 2: busca geral com nomes limpos.
+    // Tentativa 1: busca apenas pelo título limpo.
+    var result = await _fetchLyrics(queryParams: {'q': cleanedTitle});
+
+    // Tentativa 2: busca por campos (track_name + artist_name) com nomes limpos.
     result ??= await _fetchLyrics(
-      queryParams: {'q': '$cleanedTitle $cleanedArtist'},
-    );
+        queryParams: {'track_name': cleanedTitle, 'artist_name': cleanedArtist},
+      );
 
-    // Tentativa 3: fallback com nomes originais (se diferentes dos limpos).
+    // Tentativa 3: busca geral combinada limpa.
+    result ??= await _fetchLyrics(
+        queryParams: {'q': '$cleanedTitle $cleanedArtist'},
+      );
+
+    // Tentativa 4: fallback com nomes originais (se diferentes dos limpos).
     if (result == null &&
         (cleanedTitle != trackName || cleanedArtist != artistName)) {
-      result = await _fetchLyrics(
-        queryParams: {'track_name': trackName, 'artist_name': artistName},
-      );
+      result = await _fetchLyrics(queryParams: {'q': '$trackName $artistName'});
     }
 
     return result;

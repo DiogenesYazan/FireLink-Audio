@@ -10,21 +10,19 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Audio
-  just_audio: ^0.9.43
-  just_audio_background: ^0.0.1-beta.13
-  just_audio_media_kit: ^2.1.0
+  # Audio — media_kit (MPV)
+  media_kit: ^1.1.11
   media_kit_libs_windows_audio: ^1.0.9
-  audio_session: ^0.1.25
 
-  # YouTube via Piped API (proxied streams — uses http package)
+  # YouTube (sem servidor, sem API key)
+  youtube_explode_dart: ^3.0.5
 
   # State management
   flutter_bloc: ^9.1.1
   equatable: ^2.0.7
 
   # Dependency injection
-  get_it: ^8.0.3
+  get_it: ^9.2.0
 
   # Reactive streams
   rxdart: ^0.28.0
@@ -36,10 +34,14 @@ dependencies:
   cached_network_image: ^3.4.1
 
   # Fonts
-  google_fonts: ^6.2.1
+  google_fonts: ^8.0.2
 
   # Local storage
   shared_preferences: ^2.3.4
+  path_provider: ^2.1.2
+
+  # External links
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:

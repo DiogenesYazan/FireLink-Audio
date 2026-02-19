@@ -175,7 +175,9 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
     return BlocListener<PlayerBloc, PlayerState>(
       listenWhen: (prev, curr) => prev.position != curr.position,
       listener: (context, state) {
-        final position = state.position;
+        // Offset de +500ms para compensar delay visual/auditivo.
+        // Se a letra está atrasada, somamos ao position para "alcançar" o timestamp antes.
+        final position = state.position + const Duration(milliseconds: 500);
         int newIndex = -1;
 
         for (int i = widget.lines.length - 1; i >= 0; i--) {

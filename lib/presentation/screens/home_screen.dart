@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -98,40 +100,66 @@ class _HomeView extends StatelessWidget {
                 builder: (context, state) {
                   return SizedBox(
                     height: 48,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _genres.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final entry = _genres.entries.elementAt(index);
-                        final isSelected = state.genre == entry.key;
-                        return ChoiceChip(
-                          label: Text(entry.value),
-                          selected: isSelected,
-                          onSelected: (_) {
-                            context.read<HomeCubit>().loadTrending(
-                              genre: entry.key,
+                    child: ScrollConfiguration(
+                      // Habilita scroll por arrastar com mouse no Windows/Desktop.
+                      behavior: ScrollConfiguration.of(context).copyWith(
+                        dragDevices: {
+                          PointerDeviceKind.touch,
+                          PointerDeviceKind.mouse,
+                          PointerDeviceKind.trackpad,
+                        },
+                      ),
+                      child: ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return const LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Colors.white,
+                              Colors.white,
+                              Colors.white,
+                              Colors.transparent,
+                            ],
+                            stops: [0.0, 0.7, 0.9, 1.0],
+                          ).createShader(bounds);
+                        },
+                        blendMode: BlendMode.dstIn,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _genres.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final entry = _genres.entries.elementAt(index);
+                            final isSelected = state.genre == entry.key;
+                            return ChoiceChip(
+                              label: Text(entry.value),
+                              selected: isSelected,
+                              onSelected: (_) {
+                                context.read<HomeCubit>().loadTrending(
+                                  genre: entry.key,
+                                );
+                              },
+                              selectedColor: AppColors.lilac,
+                              backgroundColor: AppColors.surface,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.lilac
+                                    : AppColors.lilac.withValues(alpha: .2),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
                             );
                           },
-                          selectedColor: AppColors.lilac,
-                          backgroundColor: AppColors.surface,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          side: BorderSide(
-                            color: isSelected
-                                ? AppColors.lilac
-                                : AppColors.lilac.withValues(alpha: .2),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        );
-                      },
+                        ),
+                      ),
                     ),
                   );
                 },

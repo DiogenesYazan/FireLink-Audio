@@ -5,8 +5,10 @@ import 'config/di/service_locator.dart';
 import 'config/theme/app_theme.dart';
 import 'presentation/blocs/history/history_cubit.dart';
 import 'presentation/blocs/liked_songs/liked_songs_cubit.dart';
+import 'presentation/blocs/offline/offline_cubit.dart';
 import 'presentation/blocs/player/player_bloc.dart';
 import 'presentation/blocs/search/search_bloc.dart';
+import 'presentation/blocs/settings/settings_cubit.dart';
 import 'presentation/navigation/main_shell.dart';
 
 /// Widget raiz do aplicativo FireLink Audio.
@@ -25,6 +27,10 @@ class FireLinkApp extends StatelessWidget {
         BlocProvider<LikedSongsCubit>.value(value: sl<LikedSongsCubit>()),
         // HistoryCubit global — mantém histórico de reprodução.
         BlocProvider<HistoryCubit>.value(value: sl<HistoryCubit>()),
+        // SettingsCubit global — gerencia preferências e cache.
+        BlocProvider<SettingsCubit>.value(value: sl<SettingsCubit>()),
+        // OfflineCubit global — gerencia downloads.
+        BlocProvider<OfflineCubit>.value(value: sl<OfflineCubit>()),
       ],
       child: MaterialApp(
         title: 'FireLink Audio',
