@@ -217,12 +217,8 @@ class YoutubeDataSource {
 
   /// Baixa o áudio do vídeo para um arquivo temporário local.
   ///
-  /// **IMPORTANTE:** Força o download de containers MP4/M4A.
-  /// O Windows (via Native MF) tem suporte limitado a WebM/Opus.
-  /// Baixa o áudio do vídeo para um arquivo temporário local.
-  ///
-  /// **IMPORTANTE:** Força o download de containers MP4/M4A.
-  /// O Windows (via Native MF) tem suporte limitado a WebM/Opus.
+  /// **IMPORTANTE:** Prioriza containers MP4/M4A para máxima
+  /// compatibilidade cross-platform (Windows + Android).
   Future<String> downloadAudio(String videoId) async {
     final tempDir = Directory.systemTemp;
     final cacheDir = Directory('${tempDir.path}/firelink_cache');
@@ -256,7 +252,7 @@ class YoutubeDataSource {
     // O just_audio vai tocar a faixa de áudio desse arquivo perfeitamente.
     yt.StreamInfo? streamInfo;
 
-    // 1. Prioridade: Muxed MP4 (conhecido por ser rock-solid no Windows).
+    // 1. Prioridade: Muxed MP4 (rock-solid em todas as plataformas).
     final muxedMp4 = manifest.muxed
         .where((s) => s.container.name.toLowerCase() == 'mp4')
         .sortByBitrate();
@@ -283,7 +279,7 @@ class YoutubeDataSource {
     // Se falhar MP4, última esperança é WebM, mas logamos aviso.
     if (streamInfo == null) {
       debugPrint(
-        'YoutubeDataSource: AVISO - Nenhum MP4 encontrado. Tentando WebM provalvelmente falhará no Windows.',
+        'YoutubeDataSource: AVISO - Nenhum MP4 encontrado. Tentando WebM (funciona no Android, pode falhar no Windows).',
       );
       streamInfo = manifest.audioOnly.withHighestBitrate();
     }

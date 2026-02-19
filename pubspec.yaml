@@ -13,6 +13,7 @@ dependencies:
   # Audio — media_kit (MPV)
   media_kit: ^1.1.11
   media_kit_libs_windows_audio: ^1.0.9
+  media_kit_libs_android_audio: ^1.3.8
 
   # YouTube (sem servidor, sem API key)
   youtube_explode_dart: ^3.0.5
